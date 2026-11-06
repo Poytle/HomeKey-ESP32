@@ -714,6 +714,7 @@ void HardwareManager::runFeedbackSequence(HwEventType feedback) {
                     }
                     break;
         case HwEventType::LOCK_STATE:
+        case HwEventType::REFRESH_PIXEL:
             break;
     }
 }

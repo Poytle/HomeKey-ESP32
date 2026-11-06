@@ -4,6 +4,7 @@
 #include "LockManager.hpp"
 #include "ConfigManager.hpp"
 #include "JsonGuard.hpp"
+#include <charconv>
 #include <cstdlib>
 #include <esp_log.h>
 #include <esp_app_desc.h>
@@ -364,10 +365,9 @@ void MqttManager::onData(const std::string& topic, const std::string& data) {
     ESP_LOGI(TAG, "Received message on topic '%s': %s", topic.c_str(), data.c_str());
     
     auto to_u8 = [](const std::string &str, uint8_t& out) -> bool {
-      const char* begin = str.c_str(); char* end = nullptr;
-      unsigned long v = strtoul(begin, &end, 10);
-      if(end == begin || v < 0 || v > 255) return false;
-      out = static_cast<uint8_t>(v); return true;
+      const char* end = str.data() + str.size();
+      auto [ptr, ec] = std::from_chars(str.data(), end, out);
+      return ec == std::errc() && ptr == end;
     };
     EventLockState s{
     .source = LockManager::MQTT
