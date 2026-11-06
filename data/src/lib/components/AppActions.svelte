@@ -162,6 +162,16 @@
                         <option value={5}>GRB</option>
                       </select>
                     </div>
+                    <div class="form-control md:col-span-2">
+                      <label class="label cursor-pointer justify-start gap-3">
+                        <input
+                          type="checkbox"
+                          bind:checked={actionsConfig.neopixelLockStateEnabled}
+                          class="toggle toggle-primary"
+                        />
+                        <span class="label-text text-sm">Show lock state (green unlocked, red locked)</span>
+                      </label>
+                    </div>
                   </div>
 
                   <div class="flex max-md:flex-col max-md:gap-8 gap-4">

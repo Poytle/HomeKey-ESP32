@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include <atomic>
 #include <cstdint>
 #include <expected>
 #include <map>
@@ -71,7 +72,8 @@ private:
         FEEDBACK_SUCCESS,
         FEEDBACK_FAILURE,
         FEEDBACK_TAG_EVENT,
-        LOCK_STATE
+        LOCK_STATE,
+        REFRESH_PIXEL
     };
 
     struct HwEvent {
@@ -100,6 +102,8 @@ private:
     void hwEventTask();
     void runFeedbackSequence(HwEventType type);
     void applyLockState(int state);
+    void queuePixelRefresh();
+    void refreshPixel();
 
     static void initiator_task_entry(void* arg);
     void initiator_task();
@@ -129,6 +133,9 @@ private:
 
     bool m_altActionArmed = false;
 
+    // Last reported lock state, shown on the NeoPixel between feedback flashes.
+    std::atomic<uint8_t> m_pixelLockState;
+
     // Timer contexts (non-static to handle re-initialization correctly)
     TimerContext m_gpioS_context;
     TimerContext m_gpioF_context;
@@ -142,6 +149,7 @@ private:
     static const char* TAG;
 
     AppEventLoop::SubscriptionHandle m_hardware_action_event;
+    AppEventLoop::SubscriptionHandle m_lock_state_event;
     AppEventLoop::SubscriptionHandle m_nfc_event;
     AppEventLoop::SubscriptionHandle m_gpio_pin_event;
 

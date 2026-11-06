@@ -32,7 +32,8 @@ const std::array<const char*, 6> pixelTypeMap = { "RGB", "RBG", "BRG", "BGR", "G
 HardwareManager::HardwareManager(const espConfig::actions_config_t& miscConfig)
     : m_miscConfig(miscConfig),
       m_hwEventTaskHandle(nullptr),
-      m_hwEventQueue(nullptr)
+      m_hwEventQueue(nullptr),
+      m_pixelLockState(LockManager::LOCKED)
 {
   pinAllocations.emplace(PinFunctions::ACTION,
       GPIOAllocator::instance().acquire(gpio_num_t(miscConfig.gpioActionPin), GPIO_MODE_OUTPUT, GPIOAllocator::PinRole::GpioOut, GPIOAllocator::PinConsumer::Hardware, "ACTION_PIN"));
@@ -63,6 +64,15 @@ HardwareManager::HardwareManager(const espConfig::actions_config_t& miscConfig)
     if(ec) { ESP_LOGE(TAG, "Failed to deserialize lock state event: %s", ec.message().c_str()); return; }
     ESP_LOGD(TAG, "Received action event: %d -> %d", s.currentState, s.targetState);
     setLockOutput(s.targetState);
+  });
+  m_lock_state_event = AppEventLoop::subscribe(LOCK_EVENT, LOCK_STATE_CHANGED, [&](const uint8_t* data, size_t size){
+    if(size == 0 || data == nullptr) return;
+    std::span<const uint8_t> payload(data, size);
+    std::error_code ec;
+    EventLockState s = alpaca::deserialize<EventLockState>(payload, ec);
+    if(ec) { ESP_LOGE(TAG, "Failed to deserialize lock state event: %s", ec.message().c_str()); return; }
+    m_pixelLockState.store(s.currentState, std::memory_order_relaxed);
+    queuePixelRefresh();
   });
   m_gpio_pin_event = AppEventLoop::subscribe(HW_EVENT, HW_CONFIG_CHANGED, [&](const uint8_t* data, size_t size) {
     if (size == 0 || data == nullptr) return;
@@ -348,6 +358,8 @@ void HardwareManager::begin() {
 
     m_hwEventQueue = xQueueCreate(10, sizeof(HwEvent));
     xTaskCreateUniversal(hwEventTaskEntry, "hw_event_task", 3580, this, 3, &m_hwEventTaskHandle, 1);
+    // LockManager doesn't announce its initial state, so paint it here.
+    queuePixelRefresh();
     ESP_LOGI(TAG, "Hardware initialization complete.");
 }
 
@@ -360,6 +372,18 @@ void HardwareManager::begin() {
 void HardwareManager::setLockOutput(int state) {
     if (m_hwEventQueue != nullptr) {
         HwEvent event{HwEventType::LOCK_STATE, state};
+        xQueueSend(m_hwEventQueue, &event, pdMS_TO_TICKS(100));
+    }
+}
+
+/**
+ * @brief Enqueue a NeoPixel update for the hardware event task.
+ *
+ * If the internal event queue is not initialized, the call has no effect.
+ */
+void HardwareManager::queuePixelRefresh() {
+    if (m_hwEventQueue != nullptr) {
+        HwEvent event{HwEventType::REFRESH_PIXEL, 0};
         xQueueSend(m_hwEventQueue, &event, pdMS_TO_TICKS(100));
     }
 }
@@ -394,7 +418,7 @@ void HardwareManager::showFailureFeedback() {
  *
  * Processes the provided TimerContext and, based on its TimerSources value, performs one of:
  * - toggle the NFC success or failure GPIO,
- * - turn off the NeoPixel,
+ * - return the NeoPixel to its idle state,
  * - toggle the alternate-action GPIO,
  * - clear the alt-action armed flag and turn off the alt-action init LED.
  *
@@ -422,7 +446,7 @@ void HardwareManager::handleTimer(void* arg){
     case TimerSources::PIXEL_S:
     case TimerSources::PIXEL_F:
     case TimerSources::PIXEL_TAG_EVENT:
-      i->m_pixel->off();
+      i->queuePixelRefresh();
       ESP_LOGD(TAG, "PIXEL");
       break;
     case TimerSources::ALT_GPIO:
@@ -565,6 +589,7 @@ void HardwareManager::hwEventTaskEntry(void* instance) {
  * - FEEDBACK_SUCCESS/FEEDBACK_FAILURE/FEEDBACK_TAG_EVENT: runs the feedback sequence
  *   (NeoPixel color, GPIO pulse, timer handling).
  * - LOCK_STATE: applies the requested lock state to the action GPIO.
+ * - REFRESH_PIXEL: returns the NeoPixel to its idle state.
  *
  * GPIO pins configured with the sentinel value 255 are ignored. Timers and
  * NeoPixel behavior use durations and colors from the instance's misc configuration.
@@ -586,8 +611,33 @@ void HardwareManager::hwEventTask() {
                 case HwEventType::LOCK_STATE:
                     applyLockState(event.state);
                     break;
+                case HwEventType::REFRESH_PIXEL:
+                    refreshPixel();
+                    break;
             }
         }
+    }
+}
+
+/**
+ * @brief Shows the idle state on the NeoPixel: the lock state color, or off.
+ *
+ * Does nothing while a feedback flash is running, its timer requests another
+ * refresh when the flash ends. States other than locked and unlocked turn the
+ * pixel off.
+ */
+void HardwareManager::refreshPixel() {
+    if (m_pixel == nullptr) return;
+    for (esp_timer_handle_t timer : {m_pixelSuccessTimer, m_pixelFailTimer, m_pixelTagEventTimer}) {
+        if (timer && esp_timer_is_active(timer)) return;
+    }
+    const uint8_t state = m_pixelLockState.load(std::memory_order_relaxed);
+    if (m_miscConfig.neopixelLockStateEnabled && state == LockManager::UNLOCKED) {
+        m_pixel->set(m_pixel->RGB(NEOPIXEL_UNLOCKED_R, NEOPIXEL_UNLOCKED_G, NEOPIXEL_UNLOCKED_B));
+    } else if (m_miscConfig.neopixelLockStateEnabled && state == LockManager::LOCKED) {
+        m_pixel->set(m_pixel->RGB(NEOPIXEL_LOCKED_R, NEOPIXEL_LOCKED_G, NEOPIXEL_LOCKED_B));
+    } else {
+        m_pixel->off();
     }
 }
 

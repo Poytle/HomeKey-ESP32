@@ -102,7 +102,24 @@ Default pinout table for ESP32-S3 with PN532 over I2C, using the `Default` prese
 > [!NOTE]
 > The bus runs at 400 kHz. The ESP32's internal pull-ups are weak for that speed, so use a module with on-board pull-ups or fit external ones (around 4.7 kΩ to 3V3).
 
-#### 2.1.5. Integrated PCB Board Presets
+#### 2.1.5. Debug OLED (Optional, ESP32-S3)
+
+A 0.42" 72x40 SSD1306 OLED at I2C address `0x3C` is detected at boot and shows device status, alternating every 4 seconds between a status page (lock state, NFC and MQTT connection, last tap, free heap, uptime) and a network page (signal, IP address, SSID, firmware version). Without a display the firmware carries on and releases the pins.
+
+| ESP32-S3 Pin | OLED Pin |
+| :----------- | :------- |
+| VCC/3V3      | VCC      |
+| GND          | GND      |
+| GPIO41       | SDA      |
+| GPIO40       | SCL      |
+
+> [!WARNING]
+> The display shows the network name, IP address and tag UIDs. Don't leave it where people outside the door can read it.
+
+> [!NOTE]
+> GPIO39 (default NeoPixel), GPIO40 and GPIO41 are also part of the default keypad rows. If you enable the keypad on an ESP32-S3, assign it different pins.
+
+#### 2.1.6. Integrated PCB Board Presets
 
 When using an Integrated PCB or predefined layout, select the hardware preset in the Captive Portal or WebUI:
 

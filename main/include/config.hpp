@@ -233,6 +233,7 @@ namespace espConfig
     };
     uint8_t nfcNeopixelPin = NFC_NEOPIXEL_PIN;
     uint8_t neoPixelType = NEOPIXEL_TYPE;
+    bool neopixelLockStateEnabled = NEOPIXEL_LOCK_STATE_ENABLED;
     std::map<colorMap, uint8_t> neopixelSuccessColor = { {R, NEOPIXEL_SUCCESS_R}, {G, NEOPIXEL_SUCCESS_G}, {B, NEOPIXEL_SUCCESS_B} };
     std::map<colorMap, uint8_t> neopixelFailureColor = { {R, NEOPIXEL_FAIL_R}, {G, NEOPIXEL_FAIL_G}, {B, NEOPIXEL_FAIL_B} };
     std::map<colorMap, uint8_t> neopixelTagEventColor = { {R, NEOPIXEL_TAG_EVENT_R}, {G, NEOPIXEL_TAG_EVENT_G}, {B, NEOPIXEL_TAG_EVENT_B} };

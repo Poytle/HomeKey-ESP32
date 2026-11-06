@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #include <pins_arduino.h>
 
 // NFC Module Pins
@@ -93,9 +94,20 @@
 #define ETH_SPI_CONF_PIN_MOSI 255 // Master Out, Slave In Pin
 
 // Actions
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define NFC_NEOPIXEL_PIN 39 // GPIO Pin used for NeoPixel
+#else
 #define NFC_NEOPIXEL_PIN 255 // GPIO Pin used for NeoPixel
+#endif
 // 0="RGB", 1="RBG", 2="BRG", 3="BGR", 4="GBR", 5="GRB"
 #define NEOPIXEL_TYPE 5 // NeoPixel Type
+#define NEOPIXEL_LOCK_STATE_ENABLED true // Keep the NeoPixel lit with the lock state between feedback flashes
+#define NEOPIXEL_UNLOCKED_R 0 // Color value for Red - Unlocked
+#define NEOPIXEL_UNLOCKED_G 64 // Color value for Green - Unlocked
+#define NEOPIXEL_UNLOCKED_B 0 // Color value for Blue - Unlocked
+#define NEOPIXEL_LOCKED_R 64 // Color value for Red - Locked
+#define NEOPIXEL_LOCKED_G 0 // Color value for Green - Locked
+#define NEOPIXEL_LOCKED_B 0 // Color value for Blue - Locked
 #define NEOPIXEL_SUCCESS_R 0 // Color value for Red - Success HK Auth
 #define NEOPIXEL_SUCCESS_G 255 // Color value for Green - Success HK Auth
 #define NEOPIXEL_SUCCESS_B 0 // Color value for Blue - Success HK Auth
@@ -136,6 +148,15 @@
 #define WEB_AUTH_USERNAME "admin"
 #define WEB_AUTH_PASSWORD "password"
 #define NFC_ACTIVE_PRESET 255 // NFC preset index (255 for custom pins)
+
+// Debug OLED (0.42" 72x40), on its own I2C bus. 255 = no display
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#define DEBUG_OLED_SDA_PIN 41
+#define DEBUG_OLED_SCL_PIN 40
+#else
+#define DEBUG_OLED_SDA_PIN 255
+#define DEBUG_OLED_SCL_PIN 255
+#endif
 
 // Keypad
 #define KEYPAD_ENABLED false // Enable the matrix keypad and the HomeKit Access Code service

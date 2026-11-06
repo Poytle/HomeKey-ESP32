@@ -218,6 +218,8 @@ export interface ActionsConfig {
   nfcNeopixelPin: number;
   /** NeoPixel LED type configuration */
   neoPixelType: number;
+  /** Keep the NeoPixel lit with the lock state: green unlocked, red locked */
+  neopixelLockStateEnabled: boolean;
   /** RGB color values for successful NFC operations */
   neopixelSuccessColor: [number, number][];
   /** RGB color values for failed NFC operations */

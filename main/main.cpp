@@ -14,6 +14,7 @@
 #include "MqttManager.hpp"
 #include "automation/AutomationEngine.hpp"
 #include "WebServerManager.hpp"
+#include "DebugDisplay.hpp"
 #include <functional>
 #include <sodium/crypto_sign.h>
 #include <sodium/crypto_box.h>
@@ -33,6 +34,7 @@ std::unique_ptr<automation::AutomationEngine> automationEngine;
 WebServerManager webServerManager(configManager, readerDataManager);
 std::unique_ptr<HomeKitLock> homekitLock;
 std::unique_ptr<NfcManager> nfcManager;
+std::unique_ptr<DebugDisplay> debugDisplay;
 
 static dns_server_handle_t dns_server = NULL;
 
@@ -221,6 +223,9 @@ void setup() {
 
   webServerManager.setNfcManager(nfcManager.get());
   webServerManager.setMqttManager(mqttManager.get());
+  // Before homekitLock->begin() so the keypad can't claim the display pins.
+  debugDisplay = std::make_unique<DebugDisplay>(*lockManager, *nfcManager, *mqttManager, miscConfig.ethernetEnabled);
+  debugDisplay->begin();
   hardwareManager->begin();
   homekitLock->begin();
   lockManager->begin();

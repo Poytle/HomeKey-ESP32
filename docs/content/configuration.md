@@ -91,7 +91,7 @@ Configures hardware feedback (Relays, LEDs, NeoPixels) triggered by HomeKey even
 
 ### 4.1. NFC Triggers
 
-*   **Neopixel:** GPIO pin, pixel type (WS2812B GRB, etc.), timeout settings, RGB colors for Auth Success, Auth Failure, and Generic Tag Scans.
+*   **Neopixel:** GPIO pin, pixel type (WS2812B GRB, etc.), timeout settings, RGB colors for Auth Success, Auth Failure, and Generic Tag Scans. **Show lock state** keeps the pixel green while unlocked and red while locked, returning to that color after each feedback flash. On ESP32-S3 the default pin is `39`.
 *   **Simple GPIO:** Configurable GPIO pins, pulse timeouts, and electrical states (`HIGH`/`LOW`) for Auth Success, Auth Failure, Tag Event, and the Alternate Action initiator/feedback LED.
 
 ### 4.2. State Triggers
